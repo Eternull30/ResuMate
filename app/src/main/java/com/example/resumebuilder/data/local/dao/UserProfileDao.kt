@@ -1,24 +1,24 @@
 package com.example.resumebuilder.data.local.dao
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import com.example.resumebuilder.data.local.entity.UserProfileEntity
+import com.example.resumebuilder.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserProfileDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProfile(profile: UserProfileEntity)
 
-    @Update
-    suspend fun updateProfile(profile: UserProfileEntity)
+    @Query("SELECT * FROM user_profile WHERE uid = :uid")
+    fun getUserProfile(uid: String): Flow<UserProfileEntity?>
 
     @Query("SELECT * FROM user_profile WHERE uid = :uid LIMIT 1")
-    fun getProfile(uid: String): Flow<UserProfileEntity?>
+    suspend fun getUserProfileOnce(uid: String): UserProfileEntity?
 
-    @Query("DELETE FROM user_profile WHERE uid = :uid")
-    suspend fun deleteProfile(uid: String)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUserProfile(profile: UserProfileEntity)
+
+    @Delete
+    suspend fun deleteUserProfile(profile: UserProfileEntity)
 }
+
+

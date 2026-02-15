@@ -1,3 +1,16 @@
 package com.example.resumebuilder.data.local.entity
 
-data class ProjectEntity()
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "projects")
+data class ProjectEntity(
+
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
+    val title: String,
+    val description: String,
+    val technologies: String
+)
+
