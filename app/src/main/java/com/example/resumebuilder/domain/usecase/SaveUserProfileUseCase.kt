@@ -6,7 +6,8 @@ import com.example.resumebuilder.data.repository.UserProfileRepository
 class SaveUserProfileUseCase(
     private val repository: UserProfileRepository
 ) {
-    suspend operator fun invoke(profile: UserProfile) {
-        repository.saveUserProfile(profile)
+    suspend operator fun invoke(profile: UserProfile): Result<Unit> {
+        return repository.saveUserProfile(profile)
     }
 }
+

@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ResumeBuilderTheme {
-                NavGraph(startDestination = "profile/YOUR_FIREBASE_UID")
+                NavGraph()
             }
         }
     }

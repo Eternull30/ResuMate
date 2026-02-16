@@ -19,34 +19,54 @@ class UserProfileRepositoryImpl @Inject constructor(
         return dao.getUserProfile(uid).map { it?.toDomain() }
     }
 
-    override suspend fun saveUserProfile(profile: UserProfile) {
-        val entity = profile.toEntity()
-        dao.insertUserProfile(entity)
-        remote.saveUserProfile(entity)
-    }
+    override suspend fun saveUserProfile(profile: UserProfile): Result<Unit> {
+        return try {
+            val entity = profile.toEntity()
 
-    override suspend fun syncUserProfile(uid: String) {
+            // save locally first
+            dao.insertUserProfile(entity)
 
-        val local = dao.getUserProfileOnce(uid)
-        val remoteProfile = remote.getUserProfile(uid)
+            // Try remote
+            remote.saveUserProfile(entity)
 
-        when {
-            local == null && remoteProfile != null -> {
-                dao.insertUserProfile(remoteProfile)
-            }
-
-            local != null && remoteProfile == null -> {
-                remote.saveUserProfile(local)
-            }
-
-            local != null && remoteProfile != null -> {
-                if (remoteProfile.lastUpdated > local.lastUpdated) {
-                    dao.insertUserProfile(remoteProfile)
-                } else {
-                    remote.saveUserProfile(local)
-                }
-            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
+
+
+    override suspend fun syncUserProfile(uid: String): Result<Unit> {
+        return try {
+
+            val local = dao.getUserProfileOnce(uid)
+            val remoteProfile = remote.getUserProfile(uid)
+
+            when {
+                local == null && remoteProfile != null -> {
+                    dao.insertUserProfile(remoteProfile)
+                }
+
+                local != null && remoteProfile == null -> {
+                    remote.saveUserProfile(local)
+                }
+
+                local != null && remoteProfile != null -> {
+                    if (remoteProfile.lastUpdated > local.lastUpdated) {
+                        dao.insertUserProfile(remoteProfile)
+                    } else {
+                        remote.saveUserProfile(local)
+                    }
+                }
+            }
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
 }
 

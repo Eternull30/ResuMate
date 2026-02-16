@@ -38,21 +38,6 @@ object DatabaseModule {
     ): UserProfileDao {
         return database.userProfileDao()
     }
-    @Provides
-    @Singleton
-    fun provideGetUserProfileUseCase(
-        repository: UserProfileRepository
-    ): GetUserProfileUseCase {
-        return GetUserProfileUseCase(repository)
-    }
-
-    @Provides
-    @Singleton
-    fun provideSaveUserProfileUseCase(
-        repository: UserProfileRepository
-    ): SaveUserProfileUseCase {
-        return SaveUserProfileUseCase(repository)
-    }
 
     @Provides
     @Singleton
@@ -67,6 +52,4 @@ object DatabaseModule {
     ): UserProfileRemoteDataSource {
         return UserProfileRemoteDataSource(firestore)
     }
-
-
 }

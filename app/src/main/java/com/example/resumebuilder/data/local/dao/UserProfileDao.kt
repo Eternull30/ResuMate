@@ -2,7 +2,6 @@ package com.example.resumebuilder.data.local.dao
 
 import androidx.room.*
 import com.example.resumebuilder.data.local.entity.UserProfileEntity
-import com.example.resumebuilder.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 
 @Dao

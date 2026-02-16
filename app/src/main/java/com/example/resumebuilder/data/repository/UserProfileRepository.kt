@@ -7,7 +7,7 @@ interface UserProfileRepository {
 
     fun getUserProfile(uid: String): Flow<UserProfile?>
 
-    suspend fun saveUserProfile(profile: UserProfile)
+    suspend fun saveUserProfile(profile: UserProfile): Result<Unit>
 
-    suspend fun syncUserProfile(uid: String)
+    suspend fun syncUserProfile(uid: String): Result<Unit>
 }
