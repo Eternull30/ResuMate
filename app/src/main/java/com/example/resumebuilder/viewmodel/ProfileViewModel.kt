@@ -32,6 +32,10 @@ class ProfileViewModel @Inject constructor(
     private val _event = MutableSharedFlow<ProfileEvent>()
     val event = _event.asSharedFlow()
 
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving: StateFlow<Boolean> = _isSaving
+
+
     fun loadUser(uid: String) {
         viewModelScope.launch {
 
@@ -65,7 +69,11 @@ class ProfileViewModel @Inject constructor(
     fun save(profile: UserProfile) {
         viewModelScope.launch {
 
+            _isSaving.value = true
+
             val result = saveUserProfile(profile)
+
+            _isSaving.value = false
 
             result.onSuccess {
                 _event.emit(ProfileEvent.NavigateToResume)
@@ -76,4 +84,5 @@ class ProfileViewModel @Inject constructor(
             }
         }
     }
+
 }

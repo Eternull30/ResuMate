@@ -84,30 +84,119 @@ fun ResumePreviewScreen(
             }
 
             is ProfileUiState.Success -> {
+
                 val user = (uiState as ProfileUiState.Success).profile
 
-            }
-
-            is ProfileUiState.SaveSuccess -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    CircularProgressIndicator()
+
+                    Column(
+                        modifier = Modifier
+                            .width(400.dp) // A4-like width
+                            .verticalScroll(rememberScrollState())
+                            .padding(vertical = 24.dp)
+                    ) {
+
+                        Card(
+                            shape = MaterialTheme.shapes.medium,
+                            elevation = CardDefaults.cardElevation(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            Column(
+                                modifier = Modifier.padding(32.dp),
+                                verticalArrangement = Arrangement.spacedBy(24.dp)
+                            ) {
+
+                                // Header
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = user.name,
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        text = user.email,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Divider()
+
+                                ResumeSection(
+                                    title = "Professional Summary",
+                                    content = user.bio
+                                )
+
+                                ResumeSection(
+                                    title = "Skills",
+                                    content = user.skills
+                                )
+
+                                ResumeSection(
+                                    title = "Experience",
+                                    content = user.experience
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Button(
+                            onClick = {
+                                val uri = PdfGenerator.generate(context, user)
+
+                                Toast.makeText(
+                                    context,
+                                    if (uri != null)
+                                        "Saved to Downloads folder"
+                                    else
+                                        "Failed to save PDF",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Download as PDF")
+                        }
+
+                        Spacer(modifier = Modifier.height(40.dp))
+                    }
                 }
             }
+
+
         }
 
     }
 }
 
 @Composable
-private fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold
-    )
+private fun ResumeSection(
+    title: String,
+    content: String
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Text(
+            text = content,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
 }
+
