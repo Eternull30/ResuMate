@@ -1,6 +1,9 @@
 package com.example.resumebuilder.ui.resume
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -131,20 +134,34 @@ fun ResumePreviewScreen(
 
                                 Divider()
 
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn() + expandVertically()
+                                ){
                                 ResumeSection(
                                     title = "Professional Summary",
                                     content = user.bio
                                 )
-
+                            }
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn() + expandVertically()
+                                ){
                                 ResumeSection(
                                     title = "Skills",
                                     content = user.skills
                                 )
+                                }
 
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn() + expandVertically()
+                                ){
                                 ResumeSection(
                                     title = "Experience",
                                     content = user.experience
                                 )
+                                }
                             }
                         }
 

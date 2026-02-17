@@ -1,5 +1,10 @@
 package com.example.resumebuilder.ui.profile
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -11,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.example.resumebuilder.domain.model.UserProfile
@@ -101,6 +107,17 @@ fun ProfileScreen(
                 var skills by remember(profile) { mutableStateOf(profile.skills) }
                 var experience by remember(profile) { mutableStateOf(profile.experience) }
 
+                var visible by remember {mutableStateOf(false)}
+
+                LaunchedEffect(Unit) {
+                    visible = true
+                }
+
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = {40})
+                ) {
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -141,6 +158,10 @@ fun ProfileScreen(
                         fontWeight = FontWeight.Bold
                     )
 
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn() + expandVertically()
+                    ){
                     Card(
                         shape = MaterialTheme.shapes.large,
                         elevation = CardDefaults.cardElevation(4.dp),
@@ -174,6 +195,7 @@ fun ProfileScreen(
                             )
                         }
                     }
+                    }
 
                     Text(
                         text = "Professional Details",
@@ -181,6 +203,10 @@ fun ProfileScreen(
                         fontWeight = FontWeight.Bold
                     )
 
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn() + expandVertically()
+                    ){
                     Card(
                         shape = MaterialTheme.shapes.large,
                         elevation = CardDefaults.cardElevation(4.dp),
@@ -223,8 +249,14 @@ fun ProfileScreen(
                             )
                         }
                     }
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
+
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSaving) 0.95f else 1f,
+                        label = ""
+                    )
 
                     Button(
                         onClick = {
@@ -239,7 +271,12 @@ fun ProfileScreen(
                                 )
                             )
                         },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            },
                         enabled = !isSaving
                     ) {
                         if (isSaving) {
@@ -253,6 +290,7 @@ fun ProfileScreen(
                     }
 
 
+
                     OutlinedButton(
                         onClick = onNavigateToResume,
                         modifier = Modifier.fillMaxWidth()
@@ -261,6 +299,7 @@ fun ProfileScreen(
                     }
 
                     Spacer(modifier = Modifier.height(40.dp))
+                }
                 }
 
             }

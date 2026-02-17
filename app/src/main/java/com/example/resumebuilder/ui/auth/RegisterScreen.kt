@@ -1,6 +1,9 @@
 package com.example.resumebuilder.ui.auth
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,66 +25,85 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Scaffold { padding ->
+        var visible by remember {mutableStateOf(false)}
 
-        Text("Create Account", style = MaterialTheme.typography.headlineMedium)
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password (min 6 chars)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = {
-                isLoading = true
-                auth.createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        isLoading = false
-                        if (task.isSuccessful) {
-                            navController.navigate("profile") {
-                                popUpTo("register") { inclusive = true }
-                            }
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Registration failed",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Register")
-            }
+        LaunchedEffect(Unit) {
+            visible = true
         }
 
-        TextButton(
-            onClick = {
-                navController.popBackStack()
-            }
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn() + slideInVertically (initialOffsetY = {40}),
         ) {
-            Text("Already have an account? Login")
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            Text(
+                "Create Account",
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password (min 6 chars)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    isLoading = true
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            isLoading = false
+                            if (task.isSuccessful) {
+                                navController.navigate("profile") {
+                                    popUpTo("register") { inclusive = true }
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Registration failed",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Register")
+                }
+            }
+
+            TextButton(
+                onClick = {
+                    navController.popBackStack()
+                }
+            ) {
+                Text("Already have an account? Login")
+            }
+        }
         }
     }
+
 }
