@@ -1,5 +1,6 @@
 [versions]
 agp = "8.13.2"
+datastorePreferences = "1.0.0"
 firebaseBom = "34.9.0"
 itext7Core = "7.2.5"
 kotlin = "2.0.21"
@@ -23,6 +24,7 @@ hiltNavigationCompose = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-runtime-ktx-v262 = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtxVersion" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 itext7-core = { module = "com.itextpdf:itext7-core", version.ref = "itext7Core" }

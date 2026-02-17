@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.example.resumebuilder.domain.model.UserProfile
 import com.example.resumebuilder.viewmodel.ProfileViewModel
@@ -29,7 +30,7 @@ fun ProfileScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
-
+    val context = LocalContext.current
 
     LaunchedEffect(uid) {
         viewModel.loadUser(uid)
@@ -108,8 +109,6 @@ fun ProfileScreen(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-
-                    // Avatar Section
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center

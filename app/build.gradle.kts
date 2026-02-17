@@ -93,6 +93,4 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.itext7.core)
-
-
 }
