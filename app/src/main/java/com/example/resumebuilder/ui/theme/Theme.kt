@@ -28,7 +28,7 @@ private val DarkColorScheme = darkColorScheme(
 
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color.Black,
+    primary = Color(0xFF111111),
     onPrimary = Color.White,
 
     secondary = Color.Black,
@@ -63,7 +63,7 @@ fun ResumeBuilderTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = AppTypography,
         content = content
     )
 }

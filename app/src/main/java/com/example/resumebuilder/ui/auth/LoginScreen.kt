@@ -73,7 +73,7 @@ fun LoginScreen(
                         .addOnCompleteListener { task ->
                             isLoading = false
                             if (task.isSuccessful) {
-                                navController.navigate("profile") {
+                                navController.navigate("home") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             } else {

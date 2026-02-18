@@ -1,3 +1,8 @@
 package com.example.resumebuilder.domain.model
 
-class Resume
+data class Resume(
+    val id: String = "",
+    val title: String = "",
+    val templateType: String = "",
+    val createdAt: Long = 0L
+)

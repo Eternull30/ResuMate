@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +34,7 @@ fun ProfileScreen(
     uid: String,
     onNavigateToResume: () -> Unit,
     onLogout: () -> Unit,
+    onBack: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
 
@@ -56,12 +60,16 @@ fun ProfileScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Edit Profile") },
-                actions = {
-                    TextButton(onClick = onLogout) {
-                        Text("Logout")
+                navigationIcon = {
+                    IconButton(onClick = { onBack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 }
             )
+
         }
     ) { paddingValues ->
 

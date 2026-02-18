@@ -22,11 +22,14 @@ import com.example.resumebuilder.viewmodel.ProfileViewModel
 import com.example.resumebuilder.ui.state.ProfileUiState
 import com.example.resumebuilder.utils.PdfGenerator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.example.resumebuilder.ui.theme.ResumeTypography
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResumePreviewScreen(
     uid: String,
+    resumeId: String,
+    template: String,
     navController: NavController,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -89,6 +92,10 @@ fun ResumePreviewScreen(
             is ProfileUiState.Success -> {
 
                 val user = (uiState as ProfileUiState.Success).profile
+
+                MaterialTheme(
+                    typography = ResumeTypography
+                ) {
 
                 Box(
                     modifier = Modifier
@@ -187,6 +194,7 @@ fun ResumePreviewScreen(
 
                         Spacer(modifier = Modifier.height(40.dp))
                     }
+                }
                 }
             }
 
