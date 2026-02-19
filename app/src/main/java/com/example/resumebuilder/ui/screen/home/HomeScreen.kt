@@ -1,7 +1,13 @@
 package com.example.resumebuilder.ui.screen.home
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,16 +16,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.example.resumebuilder.viewmodel.ResumeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,19 +34,23 @@ fun HomeScreen(
     onOpenResume: (String, String) -> Unit,
     onEditProfile: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: ResumeViewModel = hiltViewModel()
+    viewModel: ResumeViewModel = hiltViewModel(),
+    navController : NavController
 ) {
 
     var expanded by remember { mutableStateOf(false) }
+
+    var showOptionsPopup by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
     var selectedResumeId by remember { mutableStateOf("") }
     var newTitle by remember { mutableStateOf("") }
 
     val resumes by viewModel.resumes.collectAsState()
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color(0xFF121212),
         topBar = {
             TopAppBar(
                 title = { Text("My Resumes") },
@@ -94,60 +104,166 @@ fun HomeScreen(
                 key = { it.id }
             ) { resume ->
 
-                val shape = RoundedCornerShape(24.dp)
+                var visible by remember { mutableStateOf(false) }
+
+                LaunchedEffect(resume.id) {
+                    visible = false
+                    visible = true
+                }
+
+                val scale by animateFloatAsState(
+                    targetValue = if (visible) 1f else 0.85f,
+                    animationSpec = spring(
+                        dampingRatio = 0.8f,
+                        stiffness = 300f
+                    ),
+                    label = "cardScale"
+                )
+
+                val alpha by animateFloatAsState(
+                    targetValue = if (visible) 1f else 0f,
+                    animationSpec = tween(300),
+                    label = "cardAlpha"
+                )
 
                 Card(
-                    shape = RoundedCornerShape(22.dp),
-                    elevation = CardDefaults.cardElevation(8.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1F1F1F)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        }
                         .combinedClickable(
                             onClick = {
-                                onOpenResume(resume.id, resume.templateType)
+                                navController.navigate("editor/${resume.id}")
                             },
                             onLongClick = {
                                 selectedResumeId = resume.id
-                                showDeleteDialog = true
+                                newTitle = resume.title
+                                showOptionsPopup = true
                             }
                         )
+
                 ) {
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF606060),   // top light
-                                        Color(0xFF606060)    // bottom soft shadow
-                                    )
-                                )
-                            )
-                            .padding(20.dp)
+                    Column(
+                        modifier = Modifier.padding(20.dp)
                     ) {
 
-                        Column {
-                            Text(
-                                text = resume.title,
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color(0xFF1E1E1E)
-                            )
+                        Text(
+                            text = resume.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFF5F5F5)
+                        )
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                            Text(
-                                text = "Template: ${resume.templateType}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF555555)
-                            )
-                        }
+                        Text(
+                            text = "Template: ${resume.templateType}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFB0B0B0)
+                        )
                     }
                 }
-
             }
 
         }
     }
+
+    // ---------------- OPTIONS POPUP ----------------
+
+    if (showOptionsPopup) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable { showOptionsPopup = false },
+            contentAlignment = Alignment.Center
+        ) {
+
+            val transition = updateTransition(
+                targetState = showOptionsPopup,
+                label = "popupTransition"
+            )
+
+            val scale by transition.animateFloat(
+                transitionSpec = {
+                    spring(
+                        dampingRatio = 0.7f,
+                        stiffness = 400f
+                    )
+                },
+                label = "scaleAnim"
+            ) { visible ->
+                if (visible) 1f else 0.6f
+            }
+
+            val alpha by transition.animateFloat(
+                transitionSpec = { tween(220) },
+                label = "alphaAnim"
+            ) { visible ->
+                if (visible) 1f else 0f
+            }
+
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF2A2A2A)
+                ),
+                modifier = Modifier
+                    .padding(24.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alpha
+                    }
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+
+                    Text(
+                        text = "Options",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White
+                    )
+
+                    Button(
+                        onClick = {
+                            showOptionsPopup = false
+                            showRenameDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Rename")
+                    }
+
+                    Button(
+                        onClick = {
+                            showOptionsPopup = false
+                            showDeleteDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Delete")
+                    }
+                }
+            }
+        }
+    }
+
+
+    // ---------------- RENAME DIALOG ----------------
 
     if (showRenameDialog) {
         AlertDialog(
@@ -167,11 +283,14 @@ fun HomeScreen(
             text = {
                 TextField(
                     value = newTitle,
-                    onValueChange = { newTitle = it }
+                    onValueChange = { newTitle = it },
+                    singleLine = true
                 )
             }
         )
     }
+
+    // ---------------- DELETE DIALOG ----------------
 
     if (showDeleteDialog) {
         AlertDialog(

@@ -23,6 +23,7 @@ import com.example.resumebuilder.ui.state.ProfileUiState
 import com.example.resumebuilder.utils.PdfGenerator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.example.resumebuilder.ui.theme.ResumeTypography
+import kotlin.Result.Companion.success
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -176,21 +177,49 @@ fun ResumePreviewScreen(
 
                         Button(
                             onClick = {
-                                val uri = PdfGenerator.generate(context, user)
+
+                                val resumeData = com.example.resumebuilder.domain.model.Resume(
+                                    id = resumeId,
+                                    title = "My Resume",
+                                    templateType = template,
+                                    createdAt = System.currentTimeMillis(),
+                                    fullName = user.name,
+                                    email = user.email,
+                                    phone = "",
+
+                                    summary = user.bio ?: "",
+
+                                    skills = user.skills
+                                        ?.split(",")
+                                        ?.map { it.trim() }
+                                        ?: emptyList(),
+
+                                    experience = user.experience
+                                        ?.split("\n")
+                                        ?.map { it.trim() }
+                                        ?: emptyList()
+                                )
+
+                                val success = PdfGenerator.generateResumePdf(
+                                    context = context,
+                                    resume = resumeData
+                                )
 
                                 Toast.makeText(
                                     context,
-                                    if (uri != null)
-                                        "Saved to Downloads folder"
+                                    if (success)
+                                        "Saved to Downloads/ResumeBuilder"
                                     else
                                         "Failed to save PDF",
                                     Toast.LENGTH_LONG
                                 ).show()
+
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Download as PDF")
                         }
+
 
                         Spacer(modifier = Modifier.height(40.dp))
                     }

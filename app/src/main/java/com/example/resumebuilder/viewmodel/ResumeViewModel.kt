@@ -17,7 +17,7 @@ class ResumeViewModel : ViewModel() {
     val resumes: StateFlow<List<Resume>> = _resumes
 
     init {
-        loadResumes() // 🔥 auto load when ViewModel created
+        loadResumes()
     }
 
     private fun loadResumes() {
@@ -73,4 +73,15 @@ class ResumeViewModel : ViewModel() {
             .document(resumeId)
             .update("title", newTitle)
     }
+    fun updateResume(resume: Resume) {
+        val uid = auth.currentUser?.uid ?: return
+
+        firestore.collection("users")
+            .document(uid)
+            .collection("resumes")
+            .document(resume.id)
+            .set(resume)
+    }
+
+
 }
