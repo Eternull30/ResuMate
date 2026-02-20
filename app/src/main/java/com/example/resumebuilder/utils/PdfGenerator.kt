@@ -60,71 +60,163 @@ object PdfGenerator {
     ) {
 
         val document = PdfDocument()
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 50f
+        val maxWidth = pageWidth - (margin * 2)
+        val bottomLimit = 800f
 
-        val pageInfo = PdfDocument.PageInfo.Builder(
-            595, 842, 1
+        var pageNumber = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(
+            pageWidth, pageHeight, pageNumber
         ).create()
 
-        val page = document.startPage(pageInfo)
-        val canvas = page.canvas
+        var page = document.startPage(pageInfo)
+        var canvas = page.canvas
         val paint = Paint()
 
         var y = 60f
 
+        fun checkPageOverflow() {
+            if (y > bottomLimit) {
+                document.finishPage(page)
+                pageNumber++
+
+                pageInfo = PdfDocument.PageInfo.Builder(
+                    pageWidth, pageHeight, pageNumber
+                ).create()
+
+                page = document.startPage(pageInfo)
+                canvas = page.canvas
+                y = 60f
+            }
+        }
+
         // Name
         paint.textSize = 24f
         paint.isFakeBoldText = true
-        canvas.drawText(resume.fullName, 50f, y, paint)
+        canvas.drawText(resume.fullName, margin, y, paint)
+
+        y += 30f
+        checkPageOverflow()
 
         // Contact
-        y += 30f
         paint.textSize = 14f
         paint.isFakeBoldText = false
-        canvas.drawText("${resume.email} | ${resume.phone}", 50f, y, paint)
+        canvas.drawText("${resume.email} | ${resume.phone}", margin, y, paint)
+
+        y += 50f
+        checkPageOverflow()
 
         // Summary
-        y += 50f
-        paint.isFakeBoldText = true
         paint.textSize = 16f
-        canvas.drawText("Professional Summary", 50f, y, paint)
+        paint.isFakeBoldText = true
+        canvas.drawText("Professional Summary", margin, y, paint)
 
         y += 25f
-        paint.isFakeBoldText = false
+        checkPageOverflow()
+
         paint.textSize = 14f
+        paint.isFakeBoldText = false
 
         resume.summary.split("\n").forEach {
-            canvas.drawText(it, 50f, y, paint)
-            y += 20f
+            y = drawWrappedText(
+                text = it,
+                canvas = canvas,
+                paint = paint,
+                startX = margin,
+                startY = y,
+                maxWidth = maxWidth
+            )
+            checkPageOverflow()
         }
 
         // Skills
         y += 30f
+        checkPageOverflow()
+
         paint.isFakeBoldText = true
-        canvas.drawText("Skills", 50f, y, paint)
+        canvas.drawText("Skills", margin, y, paint)
 
         y += 25f
+        checkPageOverflow()
+
         paint.isFakeBoldText = false
 
         resume.skills.forEach {
-            canvas.drawText("• $it", 60f, y, paint)
-            y += 20f
+            y = drawWrappedText(
+                text = "• $it",
+                canvas = canvas,
+                paint = paint,
+                startX = margin + 10f,
+                startY = y,
+                maxWidth = maxWidth
+            )
+            checkPageOverflow()
         }
 
         // Experience
         y += 30f
+        checkPageOverflow()
+
         paint.isFakeBoldText = true
-        canvas.drawText("Experience", 50f, y, paint)
+        canvas.drawText("Experience", margin, y, paint)
 
         y += 25f
+        checkPageOverflow()
+
         paint.isFakeBoldText = false
 
         resume.experience.forEach {
-            canvas.drawText("• $it", 60f, y, paint)
-            y += 20f
+            y = drawWrappedText(
+                text = "• $it",
+                canvas = canvas,
+                paint = paint,
+                startX = margin + 10f,
+                startY = y,
+                maxWidth = maxWidth
+            )
+            checkPageOverflow()
         }
 
         document.finishPage(page)
         document.writeTo(outputStream)
         document.close()
     }
+
+    private fun drawWrappedText(
+        text: String,
+        canvas: android.graphics.Canvas,
+        paint: Paint,
+        startX: Float,
+        startY: Float,
+        maxWidth: Float
+    ): Float {
+
+        var y = startY
+        val words = text.split(" ")
+        var line = ""
+
+        for (word in words) {
+
+            val testLine = if (line.isEmpty()) word else "$line $word"
+            val textWidth = paint.measureText(testLine)
+
+            if (textWidth > maxWidth) {
+                canvas.drawText(line, startX, y, paint)
+                line = word
+                y += paint.textSize + 6f
+            } else {
+                line = testLine
+            }
+        }
+
+        if (line.isNotEmpty()) {
+            canvas.drawText(line, startX, y, paint)
+            y += paint.textSize + 6f
+        }
+
+        return y
+    }
+
 }

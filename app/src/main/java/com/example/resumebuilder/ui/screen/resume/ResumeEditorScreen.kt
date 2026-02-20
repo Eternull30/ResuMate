@@ -16,6 +16,10 @@ import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.example.resumebuilder.utils.PdfGenerator
 import com.example.resumebuilder.viewmodel.ResumeViewModel
+import com.example.resumebuilder.data.remote.gemini.GeminiService
+import com.example.resumebuilder.domain.model.Resume
+import kotlinx.coroutines.launch
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +49,9 @@ fun ResumeEditorScreen(
     var summary by remember { mutableStateOf(resume.summary) }
     var skills by remember { mutableStateOf(resume.skills.joinToString(", ")) }
     var experience by remember { mutableStateOf(resume.experience.joinToString("\n")) }
+    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+
 
     Scaffold(
         topBar = {
@@ -128,6 +135,51 @@ fun ResumeEditorScreen(
                 minLines = 4
             )
 
+            Button(
+                onClick = {
+                    scope.launch {
+
+                        isLoading = true
+
+                        val skillsList = skills
+                            .split(",")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+
+                        val experienceList = experience
+                            .split("\n")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+
+                        val updatedResume = Resume(
+                            id = resume.id,
+                            fullName = fullName,
+                            email = email,
+                            phone = phone,
+                            summary = summary,
+                            skills = skillsList,
+                            experience = experienceList
+                        )
+
+                        val improvedText = GeminiService.improveResume(updatedResume)
+
+                        summary = improvedText
+
+                        isLoading = false
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text("Improve Summary with AI")
+                }
+            }
+
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
@@ -204,7 +256,7 @@ fun ResumeEditorScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Download PDF")
-            }
+                }
 
 
 
