@@ -19,3 +19,4 @@ google-services.json
 .cxx
 local.properties
 *.env
+build.gradle.kts

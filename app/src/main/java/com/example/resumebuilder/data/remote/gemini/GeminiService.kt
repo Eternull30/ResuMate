@@ -1,7 +1,9 @@
 package com.example.resumebuilder.data.remote.gemini
 
+import android.util.Log
 import com.example.resumebuilder.BuildConfig
 import com.example.resumebuilder.domain.model.Resume
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -47,9 +49,10 @@ object GeminiService {
 
                 ?: "No response"
 
-        } catch (e: Exception) {
-            e.printStackTrace()
-            "Error: ${e.message}"
+        } catch (e: HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            Log.e("GEMINI_ERROR", errorBody ?: "No error body")
+            "Error: ${errorBody ?: e.message()}"
         }
     }
 }
