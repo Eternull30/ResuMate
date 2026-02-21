@@ -2,15 +2,14 @@ package com.example.resumebuilder.data.remote.gemini
 
 import android.util.Log
 import com.example.resumebuilder.BuildConfig
+import com.example.resumebuilder.domain.model.Resume
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
-// Data classes
+// Data classes for Gemini API
 data class GeminiRequest(val contents: List<Content>)
 data class Content(val parts: List<Part>)
 data class Part(val text: String)
@@ -20,14 +19,19 @@ data class ContentData(val parts: List<Part>?)
 
 object GeminiService {
 
-    private val client = OkHttpClient()
-    private val gson = Gson()
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("https://generativelanguage.googleapis.com/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    private val geminiApi = retrofit.create(GeminiApi::class.java)
     private val apiKey = BuildConfig.GEMINI_API_KEY
+    private val gson = Gson()
+
 
     suspend fun improveResume(summary: String): String {
         return withContext(Dispatchers.IO) {
             try {
-
                 if (apiKey.isEmpty() || apiKey == "PLACEHOLDER") {
                     return@withContext "Error: API key not configured"
                 }
@@ -40,43 +44,76 @@ object GeminiService {
                     )
                 )
 
-                val jsonBody = gson.toJson(request)
-                Log.d("GeminiService", "Starting resume enhancement request...")
+                Log.d("GeminiService", "Starting single field enhancement...")
 
-                val httpRequest = Request.Builder()
-                    .url("https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=$apiKey")
-                    .post(jsonBody.toRequestBody("application/json".toMediaType()))
-                    .build()
+                val response = geminiApi.generateContent(apiKey, request)
 
-                val response = client.newCall(httpRequest).execute()
-
-                return@withContext if (response.isSuccessful) {
-                    val responseBody = response.body?.string() ?: "No response"
-                    Log.d("GeminiService", "Enhancement successful")
-
-                    val geminiResponse = gson.fromJson(responseBody, GeminiResponse::class.java)
-                    geminiResponse.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
-                        ?: "Could not extract text"
+                return@withContext if (response.candidates != null && response.candidates.isNotEmpty()) {
+                    val improvedText = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+                    Log.d("GeminiService", "Enhancement successful: ${improvedText?.take(50)}...")
+                    improvedText ?: "Could not extract text"
                 } else {
-                    Log.e("GeminiService", "API Error: ${response.code}")
-                    "Error: ${response.code}"
+                    Log.e("GeminiService", "No candidates in response")
+                    "Error: No response from Gemini"
                 }
 
             } catch (e: Exception) {
-                Log.e("GeminiService", "Exception: ${e.javaClass.simpleName}")
+                Log.e("GeminiService", "Exception: ${e.message}", e)
                 "Error: ${e.message}"
             }
         }
     }
 
-    suspend fun improveExperience(jobTitle: String, description: String): String {
+    suspend fun improveAllResumeData(resume: Resume): Resume {
         return withContext(Dispatchers.IO) {
             try {
                 if (apiKey.isEmpty() || apiKey == "PLACEHOLDER") {
-                    return@withContext "Error: API key not configured"
+                    Log.e("GeminiService", "API key not configured")
+                    return@withContext resume
                 }
 
-                val prompt = "Improve this job description. Use action verbs, highlight achievements, be quantifiable.\n\nTitle: $jobTitle\nDescription: $description\n\nProvide ONLY improved text:"
+                Log.d("GeminiService", "Starting full resume improvement via Retrofit...")
+
+                val prompt = """
+                    Improve this resume to be more professional and impactful. Enhance each section with action verbs and quantifiable achievements.
+                    
+                    Return the response in EXACTLY this format (with these exact bracket markers):
+                    
+                    [PROFESSIONAL SUMMARY]
+                    ${resume.summary.ifEmpty { "No summary provided" }}
+                    
+                    [EDUCATION]
+                    ${resume.education.joinToString("\n").ifEmpty { "No education provided" }}
+                    
+                    [TECHNICAL SKILLS]
+                    ${resume.skills.joinToString(", ").ifEmpty { "No skills provided" }}
+                    
+                    [RELEVANT EXPERIENCE]
+                    ${resume.experience.joinToString("\n").ifEmpty { "No experience provided" }}
+                    
+                    [PROJECTS]
+                    ${resume.projects.joinToString("\n").ifEmpty { "No projects provided" }}
+                    
+                    Now improve each section. Return in this exact format:
+                    
+                    [PROFESSIONAL SUMMARY]
+                    [Your improved summary here - make it powerful and concise]
+                    
+                    [EDUCATION]
+                    [Line 1 improved]
+                    [Line 2 improved]
+                    
+                    [TECHNICAL SKILLS]
+                    [Skill1, Skill2, Skill3 - improved and enhanced]
+                    
+                    [RELEVANT EXPERIENCE]
+                    [Experience 1 improved with action verbs and metrics]
+                    [Experience 2 improved with action verbs and metrics]
+                    
+                    [PROJECTS]
+                    [Project 1 improved description]
+                    [Project 2 improved description]
+                """.trimIndent()
 
                 val request = GeminiRequest(
                     contents = listOf(
@@ -84,32 +121,109 @@ object GeminiService {
                     )
                 )
 
-                val jsonBody = gson.toJson(request)
-                Log.d("GeminiService", "Starting experience enhancement request...")
+                Log.d("GeminiService", "Sending Retrofit request to Gemini API...")
 
-                val httpRequest = Request.Builder()
-                    .url("https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey")
-                    .post(jsonBody.toRequestBody("application/json".toMediaType()))
-                    .build()
+                val response = geminiApi.generateContent(apiKey, request)
 
-                val response = client.newCall(httpRequest).execute()
+                return@withContext if (response.candidates != null && response.candidates.isNotEmpty()) {
+                    val improvedText = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
 
-                return@withContext if (response.isSuccessful) {
-                    val responseBody = response.body?.string() ?: "No response"
-                    Log.d("GeminiService", "Enhancement successful")
+                    if (improvedText.isNullOrEmpty()) {
+                        Log.e("GeminiService", "Response is empty")
+                        return@withContext resume
+                    }
 
-                    val geminiResponse = gson.fromJson(responseBody, GeminiResponse::class.java)
-                    geminiResponse.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
-                        ?: "Could not extract text"
+                    Log.d("GeminiService", "Response received. Response length: ${improvedText.length}")
+                    Log.d("GeminiService", "Full response: $improvedText")
+
+                    // Parse the response
+                    val improvedResume = parseImprovedResume(improvedText, resume)
+                    Log.d("GeminiService", "Parsing complete - Summary updated: ${improvedResume.summary.take(50)}...")
+
+                    improvedResume
+
                 } else {
-                    Log.e("GeminiService", "API Error: ${response.code}")
-                    "Error: ${response.code}"
+                    Log.e("GeminiService", "No candidates in response")
+                    resume
                 }
 
             } catch (e: Exception) {
-                Log.e("GeminiService", "Exception: ${e.javaClass.simpleName}")
-                "Error: ${e.message}"
+                Log.e("GeminiService", "Exception during improvement: ${e.message}", e)
+                e.printStackTrace()
+                resume
             }
+        }
+    }
+    private fun parseImprovedResume(text: String, original: Resume): Resume {
+        return try {
+            Log.d("GeminiService", "Starting to parse response...")
+
+            val summarySection = extractSection(text, "[PROFESSIONAL SUMMARY]", "[EDUCATION]").trim()
+            val educationSection = extractSection(text, "[EDUCATION]", "[TECHNICAL SKILLS]").trim()
+            val skillsSection = extractSection(text, "[TECHNICAL SKILLS]", "[RELEVANT EXPERIENCE]").trim()
+            val experienceSection = extractSection(text, "[RELEVANT EXPERIENCE]", "[PROJECTS]").trim()
+            val projectsSection = extractSection(text, "[PROJECTS]", "").trim()
+
+            Log.d("GeminiService", "Summary extracted: ${summarySection.take(50)}...")
+            Log.d("GeminiService", "Education extracted: ${educationSection.take(50)}...")
+            Log.d("GeminiService", "Skills extracted: ${skillsSection.take(50)}...")
+            Log.d("GeminiService", "Experience extracted: ${experienceSection.take(50)}...")
+            Log.d("GeminiService", "Projects extracted: ${projectsSection.take(50)}...")
+
+            Resume(
+                id = original.id,
+                title = original.title,
+                templateType = original.templateType,
+                createdAt = original.createdAt,
+                fullName = original.fullName,
+                email = original.email,
+                phone = original.phone,
+                summary = summarySection.ifEmpty { original.summary },
+                education = educationSection.split("\n")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .ifEmpty { original.education },
+                skills = skillsSection.split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .ifEmpty { original.skills },
+                experience = experienceSection.split("\n")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .ifEmpty { original.experience },
+                projects = projectsSection.split("\n")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .ifEmpty { original.projects }
+            )
+        } catch (e: Exception) {
+            Log.e("GeminiService", "Error parsing response: ${e.message}", e)
+            original
+        }
+    }
+
+    // Extract section between two markers
+    private fun extractSection(text: String, startMarker: String, endMarker: String): String {
+        return try {
+            val startIndex = text.indexOf(startMarker)
+            if (startIndex == -1) {
+                Log.w("GeminiService", "Start marker not found: $startMarker")
+                return ""
+            }
+
+            val contentStart = startIndex + startMarker.length
+
+            val endIndex = if (endMarker.isEmpty()) {
+                text.length
+            } else {
+                val foundEnd = text.indexOf(endMarker, contentStart)
+                if (foundEnd == -1) text.length else foundEnd
+            }
+
+            text.substring(contentStart, endIndex).trim()
+        } catch (e: Exception) {
+            Log.e("GeminiService", "Error extracting section: ${e.message}")
+            ""
         }
     }
 }
