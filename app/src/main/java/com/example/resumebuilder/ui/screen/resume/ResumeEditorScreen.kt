@@ -1,24 +1,23 @@
 package com.example.resumebuilder.ui.screen.resume
 
-import android.content.Intent
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.example.resumebuilder.utils.PdfGenerator
 import com.example.resumebuilder.viewmodel.ResumeViewModel
 import com.example.resumebuilder.data.remote.gemini.GeminiService
 import com.example.resumebuilder.domain.model.Resume
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,9 +27,10 @@ fun ResumeEditorScreen(
     viewModel: ResumeViewModel,
     navController: NavController
 ) {
+    // Get context locally
+    val context = LocalContext.current
 
     val resumes by viewModel.resumes.collectAsState()
-
     val resume = resumes.find { it.id == resumeId }
 
     if (resume == null) {
@@ -49,8 +49,10 @@ fun ResumeEditorScreen(
     var summary by remember { mutableStateOf(resume.summary) }
     var skills by remember { mutableStateOf(resume.skills.joinToString(", ")) }
     var experience by remember { mutableStateOf(resume.experience.joinToString("\n")) }
+
     val scope = rememberCoroutineScope()
-    var isLoading by remember { mutableStateOf(false) }
+    var isEnhancing by remember { mutableStateOf(false) }
+    var enhancedSummary by remember { mutableStateOf<String?>(null) }
 
 
     Scaffold(
@@ -76,8 +78,6 @@ fun ResumeEditorScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-
-
         }
     ) { padding ->
 
@@ -119,6 +119,86 @@ fun ResumeEditorScreen(
                 minLines = 3
             )
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ✅ FIXED: Keep ONLY this enhance button
+            Button(
+                onClick = {
+                    isEnhancing = true
+                    scope.launch {
+                        val improved = GeminiService.improveResume(summary)
+                        enhancedSummary = improved
+                        isEnhancing = false
+                    }
+                },
+                enabled = summary.isNotEmpty() && !isEnhancing,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isEnhancing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Enhancing...")
+                } else {
+                    Text("✨ Enhance with AI")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Show enhanced version if available
+            if (enhancedSummary != null) {
+                Text(
+                    "Enhanced Version:",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        enhancedSummary!!,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Use enhanced version
+                    Button(
+                        onClick = {
+                            summary = enhancedSummary!!
+                            enhancedSummary = null
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Use This")
+                    }
+
+                    // Discard enhancement
+                    Button(
+                        onClick = {
+                            enhancedSummary = null
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Text("Discard")
+                    }
+                }
+            }
+
             OutlinedTextField(
                 value = skills,
                 onValueChange = { skills = it },
@@ -135,56 +215,9 @@ fun ResumeEditorScreen(
                 minLines = 4
             )
 
+            // Save Resume Button
             Button(
                 onClick = {
-                    scope.launch {
-
-                        isLoading = true
-
-                        val skillsList = skills
-                            .split(",")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-
-                        val experienceList = experience
-                            .split("\n")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-
-                        val updatedResume = Resume(
-                            id = resume.id,
-                            fullName = fullName,
-                            email = email,
-                            phone = phone,
-                            summary = summary,
-                            skills = skillsList,
-                            experience = experienceList
-                        )
-
-                        val improvedText = GeminiService.improveResume(updatedResume)
-
-                        summary = improvedText
-
-                        isLoading = false
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else {
-                    Text("Improve Summary with AI")
-                }
-            }
-
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-
                     val skillsList = skills
                         .split(",")
                         .map { it.trim() }
@@ -212,9 +245,10 @@ fun ResumeEditorScreen(
             ) {
                 Text("Save Resume")
             }
+
+            // Download PDF Button
             Button(
                 onClick = {
-
                     val skillsList = skills
                         .split(",")
                         .map { it.trim() }
@@ -235,19 +269,19 @@ fun ResumeEditorScreen(
                     )
 
                     val success = PdfGenerator.generateResumePdf(
-                        context = navController.context,
+                        context = context,
                         resume = updatedResume
                     )
 
                     if (success) {
                         Toast.makeText(
-                            navController.context,
+                            context,
                             "Saved to Downloads/ResumeBuilder",
                             Toast.LENGTH_LONG
                         ).show()
                     } else {
                         Toast.makeText(
-                            navController.context,
+                            context,
                             "Failed to save PDF",
                             Toast.LENGTH_LONG
                         ).show()
@@ -256,10 +290,7 @@ fun ResumeEditorScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Download PDF")
-                }
-
-
-
+            }
         }
     }
 }
