@@ -154,8 +154,6 @@ object GeminiService {
             }
         }
     }
-
-    // ✅ Parse the improved response
     private fun parseImprovedResume(text: String, original: Resume): Resume {
         return try {
             Log.d("GeminiService", "Starting to parse response...")
