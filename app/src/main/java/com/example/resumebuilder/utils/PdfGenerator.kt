@@ -15,9 +15,7 @@ object PdfGenerator {
         context: Context,
         resume: Resume
     ): Boolean {
-
         return try {
-
             val fileName =
                 "${resume.fullName.replace(" ", "_")}_Resume_${System.currentTimeMillis()}.pdf"
 
@@ -32,7 +30,6 @@ object PdfGenerator {
             }
 
             val resolver = context.contentResolver
-
             val uri = resolver.insert(
                 MediaStore.Downloads.EXTERNAL_CONTENT_URI,
                 contentValues
@@ -47,7 +44,6 @@ object PdfGenerator {
             resolver.update(uri, contentValues, null, null)
 
             true
-
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -58,11 +54,22 @@ object PdfGenerator {
         outputStream: OutputStream,
         resume: Resume
     ) {
+        when (resume.templateType) {
+            "professional" -> createProfessionalTemplate(outputStream, resume)
+            "creative" -> createCreativeTemplate(outputStream, resume)
+            else -> createModernTemplate(outputStream, resume)
+        }
+    }
 
+    // Modern Template (Clean & Minimal - like the image)
+    private fun createModernTemplate(
+        outputStream: OutputStream,
+        resume: Resume
+    ) {
         val document = PdfDocument()
         val pageWidth = 595
         val pageHeight = 842
-        val margin = 50f
+        val margin = 40f
         val maxWidth = pageWidth - (margin * 2)
         val bottomLimit = 800f
 
@@ -73,115 +80,320 @@ object PdfGenerator {
 
         var page = document.startPage(pageInfo)
         var canvas = page.canvas
-        val paint = Paint()
-
-        var y = 60f
+        var y = 50f
 
         fun checkPageOverflow() {
             if (y > bottomLimit) {
                 document.finishPage(page)
                 pageNumber++
-
                 pageInfo = PdfDocument.PageInfo.Builder(
                     pageWidth, pageHeight, pageNumber
                 ).create()
-
                 page = document.startPage(pageInfo)
-                canvas = page.canvas
-                y = 60f
+                y = 50f
             }
         }
 
-        // Name
-        paint.textSize = 24f
-        paint.isFakeBoldText = true
-        canvas.drawText(resume.fullName, margin, y, paint)
-
+        // ===== HEADER =====
+        val titlePaint = Paint().apply {
+            textSize = 26f
+            isFakeBoldText = true
+        }
+        canvas.drawText(resume.fullName, margin, y, titlePaint)
         y += 30f
         checkPageOverflow()
 
-        // Contact
-        paint.textSize = 14f
-        paint.isFakeBoldText = false
-        canvas.drawText("${resume.email} | ${resume.phone}", margin, y, paint)
-
-        y += 50f
+        val contactPaint = Paint().apply {
+            textSize = 12f
+            isFakeBoldText = false
+        }
+        val contactText = "${resume.phone} | ${resume.email}"
+        canvas.drawText(contactText, margin, y, contactPaint)
+        y += 20f
         checkPageOverflow()
 
-        // Summary
-        paint.textSize = 16f
-        paint.isFakeBoldText = true
-        canvas.drawText("Professional Summary", margin, y, paint)
-
-        y += 25f
+        // Draw horizontal line
+        val linePaint = Paint().apply {
+            strokeWidth = 1f
+        }
+        canvas.drawLine(margin, y, pageWidth - margin, y, linePaint)
+        y += 20f
         checkPageOverflow()
 
-        paint.textSize = 14f
-        paint.isFakeBoldText = false
-
-        resume.summary.split("\n").forEach {
-            y = drawWrappedText(
-                text = it,
-                canvas = canvas,
-                paint = paint,
-                startX = margin,
-                startY = y,
-                maxWidth = maxWidth
-            )
+        // ===== PROFESSIONAL SUMMARY =====
+        if (resume.summary.isNotEmpty()) {
+            val sectionPaint = Paint().apply {
+                textSize = 13f
+                isFakeBoldText = true
+            }
+            canvas.drawText("PROFESSIONAL SUMMARY", margin, y, sectionPaint)
+            y += 18f
             checkPageOverflow()
+
+            val contentPaint = Paint().apply {
+                textSize = 11f
+                isFakeBoldText = false
+            }
+
+            resume.summary.split("\n").forEach { line ->
+                y = drawWrappedText(line, canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
+            y += 12f
         }
 
-        // Skills
-        y += 30f
-        checkPageOverflow()
-
-        paint.isFakeBoldText = true
-        canvas.drawText("Skills", margin, y, paint)
-
-        y += 25f
-        checkPageOverflow()
-
-        paint.isFakeBoldText = false
-
-        resume.skills.forEach {
-            y = drawWrappedText(
-                text = "• $it",
-                canvas = canvas,
-                paint = paint,
-                startX = margin + 10f,
-                startY = y,
-                maxWidth = maxWidth
-            )
+        // ===== EDUCATION =====
+        if (resume.education.isNotEmpty()) {
             checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 13f
+                isFakeBoldText = true
+            }
+            canvas.drawText("EDUCATION", margin, y, sectionPaint)
+            y += 18f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply {
+                textSize = 11f
+                isFakeBoldText = false
+            }
+
+            resume.education.forEach { edu ->
+                y = drawWrappedText("• $edu", canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
+            y += 12f
         }
 
-        // Experience
-        y += 30f
-        checkPageOverflow()
-
-        paint.isFakeBoldText = true
-        canvas.drawText("Experience", margin, y, paint)
-
-        y += 25f
-        checkPageOverflow()
-
-        paint.isFakeBoldText = false
-
-        resume.experience.forEach {
-            y = drawWrappedText(
-                text = "• $it",
-                canvas = canvas,
-                paint = paint,
-                startX = margin + 10f,
-                startY = y,
-                maxWidth = maxWidth
-            )
+        // ===== TECHNICAL SKILLS =====
+        if (resume.skills.isNotEmpty()) {
             checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 13f
+                isFakeBoldText = true
+            }
+            canvas.drawText("TECHNICAL SKILLS", margin, y, sectionPaint)
+            y += 18f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply {
+                textSize = 11f
+                isFakeBoldText = false
+            }
+
+            val skillsText = resume.skills.joinToString(" • ")
+            y = drawWrappedText(skillsText, canvas, contentPaint, margin, y, maxWidth)
+            checkPageOverflow()
+            y += 12f
+        }
+
+        // ===== RELEVANT EXPERIENCE =====
+        if (resume.experience.isNotEmpty()) {
+            checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 13f
+                isFakeBoldText = true
+            }
+            canvas.drawText("RELEVANT EXPERIENCE", margin, y, sectionPaint)
+            y += 18f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply {
+                textSize = 11f
+                isFakeBoldText = false
+            }
+
+            resume.experience.forEach { exp ->
+                y = drawWrappedText("• $exp", canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
+            y += 12f
+        }
+
+        // ===== PROJECTS =====
+        if (resume.projects.isNotEmpty()) {
+            checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 13f
+                isFakeBoldText = true
+            }
+            canvas.drawText("PROJECTS", margin, y, sectionPaint)
+            y += 18f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply {
+                textSize = 11f
+                isFakeBoldText = false
+            }
+
+            resume.projects.forEach { project ->
+                y = drawWrappedText("• $project", canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
         }
 
         document.finishPage(page)
         document.writeTo(outputStream)
         document.close()
+    }
+
+    // Professional Template (Traditional)
+    private fun createProfessionalTemplate(
+        outputStream: OutputStream,
+        resume: Resume
+    ) {
+        val document = PdfDocument()
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 45f
+        val maxWidth = pageWidth - (margin * 2)
+        val bottomLimit = 800f
+
+        var pageNumber = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(
+            pageWidth, pageHeight, pageNumber
+        ).create()
+
+        var page = document.startPage(pageInfo)
+        var canvas = page.canvas
+        var y = 50f
+
+        fun checkPageOverflow() {
+            if (y > bottomLimit) {
+                document.finishPage(page)
+                pageNumber++
+                pageInfo = PdfDocument.PageInfo.Builder(
+                    pageWidth, pageHeight, pageNumber
+                ).create()
+                page = document.startPage(pageInfo)
+                y = 50f
+            }
+        }
+
+        // Header
+        val titlePaint = Paint().apply {
+            textSize = 24f
+            isFakeBoldText = true
+        }
+        canvas.drawText(resume.fullName, margin, y, titlePaint)
+        y += 25f
+
+        val contactPaint = Paint().apply {
+            textSize = 11f
+        }
+        canvas.drawText("${resume.email} | ${resume.phone}", margin, y, contactPaint)
+        y += 25f
+
+        val dividerPaint = Paint().apply {
+            strokeWidth = 2f
+        }
+        canvas.drawLine(margin, y, pageWidth - margin, y, dividerPaint)
+        y += 20f
+
+        // Professional Summary
+        if (resume.summary.isNotEmpty()) {
+            val sectionPaint = Paint().apply {
+                textSize = 12f
+                isFakeBoldText = true
+            }
+            canvas.drawText("PROFESSIONAL SUMMARY", margin, y, sectionPaint)
+            y += 16f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply { textSize = 11f }
+            resume.summary.split("\n").forEach { line ->
+                y = drawWrappedText(line, canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
+            y += 10f
+        }
+
+        // Education
+        if (resume.education.isNotEmpty()) {
+            checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 12f
+                isFakeBoldText = true
+            }
+            canvas.drawText("EDUCATION", margin, y, sectionPaint)
+            y += 16f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply { textSize = 11f }
+            resume.education.forEach { edu ->
+                y = drawWrappedText(edu, canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
+            y += 10f
+        }
+
+        // Skills
+        if (resume.skills.isNotEmpty()) {
+            checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 12f
+                isFakeBoldText = true
+            }
+            canvas.drawText("TECHNICAL SKILLS", margin, y, sectionPaint)
+            y += 16f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply { textSize = 11f }
+            val skillsText = resume.skills.joinToString(" • ")
+            y = drawWrappedText(skillsText, canvas, contentPaint, margin, y, maxWidth)
+            checkPageOverflow()
+            y += 10f
+        }
+
+        // Experience
+        if (resume.experience.isNotEmpty()) {
+            checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 12f
+                isFakeBoldText = true
+            }
+            canvas.drawText("RELEVANT EXPERIENCE", margin, y, sectionPaint)
+            y += 16f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply { textSize = 11f }
+            resume.experience.forEach { exp ->
+                y = drawWrappedText("• $exp", canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
+            y += 10f
+        }
+
+        // Projects
+        if (resume.projects.isNotEmpty()) {
+            checkPageOverflow()
+            val sectionPaint = Paint().apply {
+                textSize = 12f
+                isFakeBoldText = true
+            }
+            canvas.drawText("PROJECTS", margin, y, sectionPaint)
+            y += 16f
+            checkPageOverflow()
+
+            val contentPaint = Paint().apply { textSize = 11f }
+            resume.projects.forEach { project ->
+                y = drawWrappedText("• $project", canvas, contentPaint, margin, y, maxWidth)
+                checkPageOverflow()
+            }
+        }
+
+        document.finishPage(page)
+        document.writeTo(outputStream)
+        document.close()
+    }
+
+    // Creative Template (Bold & Modern)
+    private fun createCreativeTemplate(
+        outputStream: OutputStream,
+        resume: Resume
+    ) {
+        // This is similar to Modern but with more spacing
+        createModernTemplate(outputStream, resume)
     }
 
     private fun drawWrappedText(
@@ -192,20 +404,18 @@ object PdfGenerator {
         startY: Float,
         maxWidth: Float
     ): Float {
-
         var y = startY
         val words = text.split(" ")
         var line = ""
 
         for (word in words) {
-
             val testLine = if (line.isEmpty()) word else "$line $word"
             val textWidth = paint.measureText(testLine)
 
             if (textWidth > maxWidth) {
                 canvas.drawText(line, startX, y, paint)
                 line = word
-                y += paint.textSize + 6f
+                y += paint.textSize + 5f
             } else {
                 line = testLine
             }
@@ -213,10 +423,9 @@ object PdfGenerator {
 
         if (line.isNotEmpty()) {
             canvas.drawText(line, startX, y, paint)
-            y += paint.textSize + 6f
+            y += paint.textSize + 5f
         }
 
         return y
     }
-
 }
