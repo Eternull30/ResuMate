@@ -119,7 +119,7 @@ Whether you're a first-time job seeker or an experienced professional, ResuMate 
 
 ---
 
-## 📖 Usage
+## Usage
 
 ### Creating a Resume
 
