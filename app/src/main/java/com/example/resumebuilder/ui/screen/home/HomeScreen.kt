@@ -177,8 +177,6 @@ fun HomeScreen(
         }
     }
 
-    // ---------------- OPTIONS POPUP ----------------
-
     if (showOptionsPopup) {
 
         Box(
@@ -262,9 +260,6 @@ fun HomeScreen(
         }
     }
 
-
-    // ---------------- RENAME DIALOG ----------------
-
     if (showRenameDialog) {
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
@@ -289,8 +284,6 @@ fun HomeScreen(
             }
         )
     }
-
-    // ---------------- DELETE DIALOG ----------------
 
     if (showDeleteDialog) {
         AlertDialog(

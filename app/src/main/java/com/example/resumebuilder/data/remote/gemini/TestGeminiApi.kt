@@ -7,7 +7,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
 fun main() {
-    val apiKey = "AIzaSyBhvmee1K_v0FtlkGlQrX2OJ3q7bsYyC7w"  // Replace with your key
+    val apiKey = "AIzaSyBhvmee1K_v0FtlkGlQrX2OJ3q7bsYyC7w"
 
     val client = OkHttpClient()
 

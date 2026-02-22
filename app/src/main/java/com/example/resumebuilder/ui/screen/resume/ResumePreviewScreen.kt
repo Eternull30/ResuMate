@@ -107,7 +107,7 @@ fun ResumePreviewScreen(
 
                     Column(
                         modifier = Modifier
-                            .width(400.dp) // A4-like width
+                            .width(400.dp)
                             .verticalScroll(rememberScrollState())
                             .padding(vertical = 24.dp)
                     ) {
@@ -123,7 +123,6 @@ fun ResumePreviewScreen(
                                 verticalArrangement = Arrangement.spacedBy(24.dp)
                             ) {
 
-                                // Header
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {

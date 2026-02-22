@@ -23,10 +23,8 @@ class UserProfileRepositoryImpl @Inject constructor(
         return try {
             val entity = profile.toEntity()
 
-            // save locally first
             dao.insertUserProfile(entity)
 
-            // Try remote
             remote.saveUserProfile(entity)
 
             Result.success(Unit)

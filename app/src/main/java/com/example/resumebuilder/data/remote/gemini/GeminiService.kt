@@ -6,8 +6,10 @@ import com.example.resumebuilder.domain.model.Resume
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 // Data classes for Gemini API
 data class GeminiRequest(val contents: List<Content>)
@@ -19,15 +21,21 @@ data class ContentData(val parts: List<Part>?)
 
 object GeminiService {
 
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
+
     private val retrofit = Retrofit.Builder()
         .baseUrl("https://generativelanguage.googleapis.com/")
+        .client(okHttpClient)  // Use custom client with longer timeout
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
     private val geminiApi = retrofit.create(GeminiApi::class.java)
     private val apiKey = BuildConfig.GEMINI_API_KEY
     private val gson = Gson()
-
 
     suspend fun improveResume(summary: String): String {
         return withContext(Dispatchers.IO) {
@@ -154,6 +162,7 @@ object GeminiService {
             }
         }
     }
+
     private fun parseImprovedResume(text: String, original: Resume): Resume {
         return try {
             Log.d("GeminiService", "Starting to parse response...")
@@ -201,8 +210,6 @@ object GeminiService {
             original
         }
     }
-
-    // Extract section between two markers
     private fun extractSection(text: String, startMarker: String, endMarker: String): String {
         return try {
             val startIndex = text.indexOf(startMarker)
