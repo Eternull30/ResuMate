@@ -5,70 +5,62 @@ import androidx.lifecycle.ViewModel
 import com.example.resumebuilder.domain.model.Resume
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class ResumeViewModel : ViewModel() {
-
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+@HiltViewModel
+class ResumeViewModel @Inject constructor(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
+) : ViewModel() {
 
     private val _resumes = MutableStateFlow<List<Resume>>(emptyList())
     val resumes: StateFlow<List<Resume>> = _resumes
 
-    // Track current user to detect login/logout changes
-    private var currentUserId: String? = null
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
-    // Track listener registration to prevent duplicates
-    private var listenerRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+    private var currentUserId: String? = null
+    private var listenerRegistration: ListenerRegistration? = null
 
     init {
-        loadResumes()
-    }
-
-    private fun loadResumes() {
-        val uid = auth.currentUser?.uid
-
-        Log.d("ResumeViewModel", "loadResumes called. Current UID: $uid, Previous UID: $currentUserId")
-
-        // IMPORTANT: If user changed (logout then login), clear cache
-        if (currentUserId != uid) {
-            Log.d("ResumeViewModel", "User ID changed! Clearing cache.")
-            Log.d("ResumeViewModel", "Old user: $currentUserId")
-            Log.d("ResumeViewModel", "New user: $uid")
-
-            // Clear old listener
-            listenerRegistration?.remove()
-
-            // Clear old resume data
-            _resumes.value = emptyList()
-
-            // Update current user
-            currentUserId = uid
+        auth.addAuthStateListener { firebaseAuth ->
+            val uid = firebaseAuth.currentUser?.uid
+            Log.d("ResumeViewModel", "Auth state changed. UID = $uid")
+            loadResumesForUser(uid)
         }
+    }
+    private fun loadResumesForUser(uid: String?) {
+
+        Log.d("ResumeViewModel", "loadResumesForUser: $uid")
+
+        // Remove old listener ALWAYS
+        listenerRegistration?.remove()
+        listenerRegistration = null
+
+        _resumes.value = emptyList()
 
         if (uid == null) {
-            Log.e("ResumeViewModel", "ERROR: User not authenticated!")
-            _resumes.value = emptyList()  // Clear on logout
+            _isLoading.value = false
             currentUserId = null
             return
         }
 
-        Log.d("ResumeViewModel", "Setting up listener for user: $uid")
+        currentUserId = uid
+        _isLoading.value = true
 
-        // Remove old listener before setting new one
-        listenerRegistration?.remove()
-
-        // Set up new listener
         listenerRegistration = firestore.collection("users")
             .document(uid)
             .collection("resumes")
             .addSnapshotListener { snapshot, error ->
 
                 if (error != null) {
-                    Log.e("ResumeViewModel", "ERROR loading resumes: ${error.message}")
-                    _resumes.value = emptyList()
+                    Log.e("ResumeViewModel", error.message ?: "Error")
+                    _isLoading.value = false
                     return@addSnapshotListener
                 }
 
@@ -76,14 +68,85 @@ class ResumeViewModel : ViewModel() {
                     it.toObject(Resume::class.java)?.copy(id = it.id)
                 } ?: emptyList()
 
-                Log.d("ResumeViewModel", "Loaded ${list.size} resumes from Firestore for user: $uid")
-                list.forEach {
-                    Log.d("ResumeViewModel", "  - ${it.id}: ${it.title}")
-                }
-
                 _resumes.value = list.sortedByDescending { it.createdAt }
+                _isLoading.value = false
             }
     }
+
+//    private fun loadResumes() {
+//        val uid = auth.currentUser?.uid
+//
+//        Log.d("ResumeViewModel", "loadResumes called. Current UID: $uid, Previous UID: $currentUserId")
+//
+//        // If user changed (logout then login), clear cache
+//        if (currentUserId != uid) {
+//            Log.d("ResumeViewModel", "User ID changed! Clearing cache.")
+//            Log.d("ResumeViewModel", "Old user: $currentUserId")
+//            Log.d("ResumeViewModel", "New user: $uid")
+//
+//            listenerRegistration?.remove()
+//            _resumes.value = emptyList()
+//            _isLoading.value = true  // START LOADING
+//            currentUserId = uid
+//        }
+//
+//        if (uid == null) {
+//            Log.e("ResumeViewModel", "ERROR: User not authenticated!")
+//            _resumes.value = emptyList()
+//            _isLoading.value = false
+//            currentUserId = null
+//            return
+//        }
+//
+//        Log.d("ResumeViewModel", "Setting up listener for user: $uid")
+//        _isLoading.value = true  // IMPORTANT: Set to true BEFORE listener
+//
+//        // Remove old listener before setting new one
+//        listenerRegistration?.remove()
+//
+//        // Set up listener
+//        listenerRegistration = firestore.collection("users")
+//            .document(uid)
+//            .collection("resumes")
+//            .addSnapshotListener { snapshot, error ->
+//
+//                Log.d("ResumeViewModel", "Listener fired!")
+//
+//                if (error != null) {
+//                    Log.e("ResumeViewModel", "ERROR in listener: ${error.message}")
+//                    _resumes.value = emptyList()
+//                    _isLoading.value = false
+//                    return@addSnapshotListener
+//                }
+//
+//                if (snapshot == null) {
+//                    Log.d("ResumeViewModel", "Snapshot is null")
+//                    _resumes.value = emptyList()
+//                    _isLoading.value = false
+//                    return@addSnapshotListener
+//                }
+//
+//                Log.d("ResumeViewModel", "Snapshot documents: ${snapshot.documents.size}")
+//
+//                val list = snapshot.documents.mapNotNull { doc ->
+//                    try {
+//                        val resume = doc.toObject(Resume::class.java)?.copy(id = doc.id)
+//                        Log.d("ResumeViewModel", "Parsed resume: ${resume?.id} - ${resume?.title}")
+//                        resume
+//                    } catch (e: Exception) {
+//                        Log.e("ResumeViewModel", "Error parsing resume: ${e.message}")
+//                        null
+//                    }
+//                }
+//
+//                Log.d("ResumeViewModel", "Final list size: ${list.size}")
+//
+//                _resumes.value = list.sortedByDescending { it.createdAt }
+//                _isLoading.value = false  // IMPORTANT: Stop loading
+//
+//                Log.d("ResumeViewModel", "Updated UI with ${list.size} resumes")
+//            }
+//    }
 
     fun createResume(title: String, templateType: String) {
         val uid = auth.currentUser?.uid
@@ -186,11 +249,11 @@ class ResumeViewModel : ViewModel() {
             }
     }
 
-    // IMPORTANT: Call this on logout
     fun clearCache() {
         Log.d("ResumeViewModel", "Clearing cache on logout")
         listenerRegistration?.remove()
         _resumes.value = emptyList()
+        _isLoading.value = false
         currentUserId = null
     }
 

@@ -41,12 +41,6 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideFirestore(): FirebaseFirestore {
-        return FirebaseFirestore.getInstance()
-    }
-
-    @Provides
-    @Singleton
     fun provideRemoteDataSource(
         firestore: FirebaseFirestore
     ): UserProfileRemoteDataSource {

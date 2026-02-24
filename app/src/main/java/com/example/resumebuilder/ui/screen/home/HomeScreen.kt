@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.resumebuilder.viewmodel.ResumeViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +36,7 @@ fun HomeScreen(
     onEditProfile: () -> Unit,
     onLogout: () -> Unit,
     viewModel: ResumeViewModel = hiltViewModel(),
-    navController : NavController
+    navController: NavController
 ) {
 
     var expanded by remember { mutableStateOf(false) }
@@ -73,6 +74,8 @@ fun HomeScreen(
                             text = { Text("Logout") },
                             onClick = {
                                 expanded = false
+                                viewModel.clearCache()
+                                FirebaseAuth.getInstance().signOut()
                                 onLogout()
                             }
                         )
@@ -83,7 +86,9 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    viewModel.createResume("New Resume", "modern")
+                    if (FirebaseAuth.getInstance().currentUser != null) {
+                        viewModel.createResume("New Resume", "modern")
+                    }
                 }
             ) {
                 Icon(Icons.Default.Add, null)
