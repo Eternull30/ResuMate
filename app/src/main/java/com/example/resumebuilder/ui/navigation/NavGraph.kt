@@ -10,7 +10,9 @@ import com.example.resumebuilder.ui.auth.RegisterScreen
 import com.example.resumebuilder.ui.profile.ProfileScreen
 import com.example.resumebuilder.ui.resume.ResumePreviewScreen
 import com.example.resumebuilder.ui.screen.home.HomeScreen
+import com.example.resumebuilder.ui.screen.resume.ForgotPasswordScreen
 import com.example.resumebuilder.ui.screen.resume.ResumeEditorScreen
+import com.example.resumebuilder.viewmodel.AuthViewModel
 import com.example.resumebuilder.viewmodel.ResumeViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -21,29 +23,30 @@ fun NavGraph() {
     val currentUser = FirebaseAuth.getInstance().currentUser
 
     val resumeViewModel: ResumeViewModel = hiltViewModel()
+    val authViewModel: AuthViewModel = hiltViewModel()
 
     NavHost(
         navController = navController,
         startDestination = if (currentUser != null) "home" else "login"
     ) {
 
-
         composable("login") {
             LoginScreen(navController)
         }
-
 
         composable("register") {
             RegisterScreen(navController)
         }
 
+        composable("forgot_password") {
+            ForgotPasswordScreen(authViewModel, navController)
+        }
 
         composable("home") {
             HomeScreen(
                 navController = navController,
                 viewModel = resumeViewModel,
                 onOpenResume = { resumeId, template ->
-
                     navController.navigate("editor/$resumeId")
                 },
                 onEditProfile = {
@@ -51,13 +54,13 @@ fun NavGraph() {
                 },
                 onLogout = {
                     FirebaseAuth.getInstance().signOut()
+                    authViewModel.resetSyncState()
                     navController.navigate("login") {
                         popUpTo("home") { inclusive = true }
                     }
                 }
             )
         }
-
 
         composable("profile") {
             ProfileScreen(
@@ -68,13 +71,13 @@ fun NavGraph() {
                 onBack = { navController.popBackStack() },
                 onLogout = {
                     FirebaseAuth.getInstance().signOut()
+                    authViewModel.resetSyncState()
                     navController.navigate("login") {
                         popUpTo("profile") { inclusive = true }
                     }
                 }
             )
         }
-
 
         composable(
             route = "editor/{resumeId}",
@@ -92,7 +95,6 @@ fun NavGraph() {
                 navController = navController
             )
         }
-
 
         composable(
             route = "resume/{resumeId}/{template}",
