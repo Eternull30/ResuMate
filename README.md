@@ -93,7 +93,7 @@ Whether you're a first-time job seeker or an experienced professional, ResuMate 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ResuMate.git
+   git clone https://github.com/Eternull30/ResuMate
    cd ResuMate
    ```
 
