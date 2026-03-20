@@ -236,8 +236,4 @@ Contributions are welcome! Here's how you can help:
 
 "center">
 
-Developed with ❤️ by Jeet Tanwar
-
-⭐ If you find this project helpful, please star it!
-
 </div>
