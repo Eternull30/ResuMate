@@ -234,6 +234,5 @@ Contributions are welcome! Here's how you can help:
 
 ---
 
-"center">
 
 </div>
